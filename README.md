@@ -35,7 +35,14 @@ LeetCode-Auto works with two different LeetCode UIs:
 ### Synchronizing Submissions
 
 - **Auto-Sync Delay**: To ensure successful upload, please wait **4 seconds** after submitting a solution before typing in the editor, switching languages, or navigating away. This gives the extension time to retrieve files and push to GitHub.
-- **Manual Sync Button**: A manual synchronization button is available next to the notes icon in LeetCode. You can click this button after successful submission to force-sync, or to push any of your previous submissions.
+- **Dynamic Manual Sync Button**: A redesigned, sleek, and premium manual sync icon button is available next to the bookmark/notes icon in LeetCode (or next to the console submit button as a fallback).
+  - **Click** to manually push or force-sync the latest accepted submission.
+  - **Right-click** to add a custom filename suffix (e.g., `-dfs`, `-bfs`) for versioning.
+  - **Dynamic States**: The button acts as a live progress indicator:
+    - **Git Icon (Idle)**: Default state, ready to sync.
+    - **Blue Spinning Loader (Uploading)**: Actively querying submission details and pushing to GitHub.
+    - **Green Checkmark (Success)**: Successfully committed. Background glows green and automatically reverts to idle after 3 seconds.
+    - **Red Cross (Failed)**: Upload failed. Background glows red and automatically reverts to idle after 3 seconds.
 
 ---
 
