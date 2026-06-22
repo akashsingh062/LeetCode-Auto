@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "LeetCode-Auto",
+  "description": "Automatically integrate your LeetCode submissions to GitHub",
+  "version": "0.0.16",
+  "action": {
+    "default_icon": "assets/icon48.png",
+    "default_popup": "src/html/popup.html"
+  },
+  "icons": {
+    "16": "assets/icon16.png",
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "background": {
+    "service_worker": "src/js/background.js"
+  },
+  "permissions": [
+    "unlimitedStorage",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.github.com/*",
+    "https://github.com/*",
+    "https://leetcode.com/*",
+    "https://leetcode.cn/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/*",
+        "https://leetcode.cn/*",
+        "https://github.com/*"
+      ],
+      "js": [
+        "src/js/interceptor.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://leetcode.com/*",
+        "https://leetcode.cn/*",
+        "https://github.com/*"
+      ],
+      "js": [
+        "src/js/leetcode.js",
+        "src/js/authorize.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/js/interceptor.js"],
+      "matches": ["https://leetcode.com/*", "https://leetcode.cn/*"]
+    }
+  ]
+}

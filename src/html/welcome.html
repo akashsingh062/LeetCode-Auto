@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LeetCode-Auto — Setup</title>
+    <link rel="stylesheet" href="../css/welcome.css" />
+  </head>
+
+  <body>
+    <div class="welcome-container">
+      <!-- ── Logo ─────────────────────────────────────────── -->
+      <h1 class="welcome-logo">LeetCode-<span class="accent">Auto</span></h1>
+      <p class="welcome-tagline">Automatically sync your LeetCode solutions to GitHub</p>
+
+      <!-- ── Messages ─────────────────────────────────────── -->
+      <div id="error"></div>
+      <div id="success"></div>
+      <p id="unlink">Linked the wrong repo? <a>Unlink</a>.</p>
+
+      <!-- ── Hook Mode (Setup) ────────────────────────────── -->
+      <div id="hook_mode" class="glass-card">
+        <h2 class="setup-heading">Get started with LeetCode-Auto</h2>
+
+        <div class="form-group">
+          <label class="form-label" for="type">Choose an option</label>
+          <select id="type" class="form-select">
+            <option value="">Pick an Option</option>
+            <option value="new">Create a new Private Repository</option>
+            <option value="link">Link an Existing Repository</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <input
+            id="name"
+            class="form-input"
+            type="text"
+            autocomplete="off"
+            placeholder="Repository Name"
+            style="display: none"
+          />
+          <select id="existing_repo" class="form-select" style="display: none">
+            <option value="">Select a Repository</option>
+          </select>
+        </div>
+
+        <div class="text-center">
+          <button id="hook_button" class="btn-start" disabled>🚀 &nbsp;Get Started</button>
+        </div>
+      </div>
+
+      <!-- ── Commit Mode (Stats) ──────────────────────────── -->
+      <div id="commit_mode" class="glass-card">
+        <div class="stats-grid">
+          <div class="stats-card total">
+            <span id="p_solved" class="stats-number">0</span>
+            <span class="stats-label">Solved</span>
+          </div>
+          <div class="stats-card easy">
+            <span id="p_solved_easy" class="stats-number">0</span>
+            <span class="stats-label">Easy</span>
+          </div>
+          <div class="stats-card medium">
+            <span id="p_solved_medium" class="stats-number">0</span>
+            <span class="stats-label">Medium</span>
+          </div>
+          <div class="stats-card hard">
+            <span id="p_solved_hard" class="stats-number">0</span>
+            <span class="stats-label">Hard</span>
+          </div>
+        </div>
+        <div class="text-center">
+          <a id="sync_counts" class="sync-link">↻ Sync Problem Counts</a>
+        </div>
+      </div>
+    </div>
+
+    <script type="text/javascript" src="../js/welcome.js"></script>
+  </body>
+</html>
