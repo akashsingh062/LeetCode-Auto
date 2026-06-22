@@ -73,7 +73,7 @@ function main() {
 
   // Create .env.example if it doesn't exist
   if (!fs.existsSync(ENV_EXAMPLE_PATH)) {
-    const exampleContent = `# GitHub OAuth Secrets for LeetHub-3.0
+    const exampleContent = `# GitHub OAuth Secrets for LeetCode-Auto
 GITHUB_CLIENT_ID=your_client_id_here
 GITHUB_CLIENT_SECRET=your_client_secret_here
 `;
@@ -83,7 +83,7 @@ GITHUB_CLIENT_SECRET=your_client_secret_here
 
   // Create .env with current values if it doesn't exist
   if (!fs.existsSync(ENV_PATH)) {
-    const envContent = `# GitHub OAuth Secrets for LeetHub-3.0
+    const envContent = `# GitHub OAuth Secrets for LeetCode-Auto
 GITHUB_CLIENT_ID=${current.clientId || 'your_client_id_here'}
 GITHUB_CLIENT_SECRET=${current.clientSecret || 'your_client_secret_here'}
 `;

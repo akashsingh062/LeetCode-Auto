@@ -47,8 +47,8 @@ $('#pat_connect').addEventListener('click', () => {
         }
         chrome.storage.local.set(
           {
-            leethub_token: pat,
-            leethub_username: username,
+            leetcode_auto_token: pat,
+            leetcode_auto_username: username,
             mode_type: 'hook',
           },
           () => {
@@ -88,7 +88,7 @@ $('#commit-accordion-trigger').addEventListener('click', () => {
       const msg = data.custom_commit_message;
       const textarea = $('#custom-commit-msg');
       if (!msg) {
-        textarea.placeholder = 'Time: {time}, Space: {space} - LeetHub';
+        textarea.placeholder = 'Time: {time}, Space: {space} - LeetCode-Auto';
       } else {
         textarea.placeholder = msg;
         textarea.value = msg;
@@ -133,7 +133,7 @@ $('#msg-save-btn').addEventListener('click', () => {
 $('#msg-reset-btn').addEventListener('click', () => {
   const textarea = $('#custom-commit-msg');
   textarea.value = '';
-  textarea.placeholder = 'Time: {time}, Space: {space} - LeetHub';
+  textarea.placeholder = 'Time: {time}, Space: {space} - LeetCode-Auto';
   chrome.runtime.sendMessage({ action: 'customCommitMessageUpdated', message: null });
 });
 
@@ -148,8 +148,8 @@ $$('.var-pill').forEach(pill => {
 });
 
 /* ── Init: Determine which mode to show ──────────────────── */
-chrome.storage.local.get('leethub_token', data => {
-  const token = data.leethub_token;
+chrome.storage.local.get('leetcode_auto_token', data => {
+  const token = data.leetcode_auto_token;
 
   if (!token) {
     action = true;
@@ -179,7 +179,7 @@ chrome.storage.local.get('leethub_token', data => {
             }
 
             // Get stats and repo link
-            chrome.storage.local.get(['stats', 'leethub_hook'], data3 => {
+            chrome.storage.local.get(['stats', 'leetcode_auto_hook'], data3 => {
               const { stats } = data3;
               if (stats && stats.solved) {
                 $('#p_solved').textContent = stats.solved;
@@ -188,7 +188,7 @@ chrome.storage.local.get('leethub_token', data => {
                 $('#p_solved_hard').textContent = stats.hard;
               }
 
-              const hook = data3.leethub_hook;
+              const hook = data3.leetcode_auto_hook;
               if (hook) {
                 const repoLink = $('#repo_url');
                 repoLink.href = `https://github.com/${hook}`;
@@ -200,7 +200,7 @@ chrome.storage.local.get('leethub_token', data => {
           }
         });
       } else if (xhr.status === 401) {
-        chrome.storage.local.set({ leethub_token: null }, () => {
+        chrome.storage.local.set({ leetcode_auto_token: null }, () => {
           action = true;
           show('#auth_mode');
         });
@@ -215,7 +215,7 @@ chrome.storage.local.get('leethub_token', data => {
 /* ── Logout ──────────────────────────────────────────────── */
 const handleLogout = () => {
   chrome.storage.local.remove(
-    ['leethub_token', 'leethub_username', 'leethub_hook', 'mode_type', 'stats'],
+    ['leetcode_auto_token', 'leetcode_auto_username', 'leetcode_auto_hook', 'mode_type', 'stats'],
     () => {
       window.location.reload();
     },

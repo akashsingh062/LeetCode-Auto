@@ -67,7 +67,7 @@ const statusCode = (res, status, name) => {
         showEl('#commit_mode');
       });
       /* Set Repo Hook */
-      chrome.storage.local.set({ leethub_hook: res.full_name }, () => {
+      chrome.storage.local.set({ leetcode_auto_hook: res.full_name }, () => {
         console.log('Successfully set new repo hook');
       });
       break;
@@ -101,17 +101,17 @@ const linkStatusCode = (status, name) => {
   switch (status) {
     case 301:
       showError(
-        `Error linking <a target="_blank" href="https://github.com/${name}">${name}</a> to LeetHub. <br> This repository has been moved permanently. Try creating a new one.`,
+        `Error linking <a target="_blank" href="https://github.com/${name}">${name}</a> to LeetCode-Auto. <br> This repository has been moved permanently. Try creating a new one.`,
       );
       break;
     case 403:
       showError(
-        `Error linking <a target="_blank" href="https://github.com/${name}">${name}</a> to LeetHub. <br> Forbidden action. Please make sure you have the right access to this repository.`,
+        `Error linking <a target="_blank" href="https://github.com/${name}">${name}</a> to LeetCode-Auto. <br> Forbidden action. Please make sure you have the right access to this repository.`,
       );
       break;
     case 404:
       showError(
-        `Error linking <a target="_blank" href="https://github.com/${name}">${name}</a> to LeetHub. <br> Resource not found. Make sure you enter the right repository name.`,
+        `Error linking <a target="_blank" href="https://github.com/${name}">${name}</a> to LeetCode-Auto. <br> Resource not found. Make sure you enter the right repository name.`,
       );
       break;
     default:
@@ -143,8 +143,8 @@ $('#type').addEventListener('change', function () {
 
 /* ── Load Repositories ───────────────────────────────────── */
 function loadRepositories() {
-  chrome.storage.local.get('leethub_token', data => {
-    const token = data.leethub_token;
+  chrome.storage.local.get('leetcode_auto_token', data => {
+    const token = data.leetcode_auto_token;
     let repos = [];
     let page = 1;
 
@@ -199,9 +199,9 @@ const linkRepo = (token, name) => {
       if (xhr.status === 200) {
         if (!bool) {
           chrome.storage.local.set({ mode_type: 'hook' }, () => {
-            console.log(`Error linking ${name} to LeetHub`);
+            console.log(`Error linking ${name} to LeetCode-Auto`);
           });
-          chrome.storage.local.set({ leethub_hook: null }, () => {
+          chrome.storage.local.set({ leetcode_auto_hook: null }, () => {
             console.log('Defaulted repo hook to NONE');
           });
           showEl('#hook_mode');
@@ -209,12 +209,12 @@ const linkRepo = (token, name) => {
         } else {
           chrome.storage.local.set({ mode_type: 'commit', repo: res.html_url }, () => {
             showSuccess(
-              `Successfully linked <a target="_blank" href="${res.html_url}">${name}</a> to LeetHub. Start <a href="http://leetcode.com">LeetCoding</a> now!`,
+              `Successfully linked <a target="_blank" href="${res.html_url}">${name}</a> to LeetCode-Auto. Start <a href="http://leetcode.com">LeetCoding</a> now!`,
             );
             showEl('#unlink');
           });
           chrome.storage.local
-            .set({ leethub_hook: res.full_name })
+            .set({ leetcode_auto_hook: res.full_name })
             .then(() => {
               console.log('Successfully set new repo hook');
               return chrome.storage.local.get('stats');
@@ -245,7 +245,7 @@ const unlinkRepo = () => {
   chrome.storage.local.set({ mode_type: 'hook' }, () => {
     console.log('Unlinking repo');
   });
-  chrome.storage.local.set({ leethub_hook: null }, () => {
+  chrome.storage.local.set({ leetcode_auto_hook: null }, () => {
     console.log('Setting repo hook to NONE');
   });
   showEl('#hook_mode');
@@ -263,20 +263,20 @@ $('#hook_button').addEventListener('click', () => {
     hideEl('#error');
     showSuccess('Attempting to create Hook... Please wait.');
 
-    chrome.storage.local.get('leethub_token', data => {
-      const token = data.leethub_token;
+    chrome.storage.local.get('leetcode_auto_token', data => {
+      const token = data.leetcode_auto_token;
       if (!token) {
         showError(
-          'Authorization error - Grant LeetHub access to your GitHub account to continue (launch extension to proceed)',
+          'Authorization error - Grant LeetCode-Auto access to your GitHub account to continue (launch extension to proceed)',
         );
       } else if (option() === 'new') {
         createRepo(token, repositoryName());
       } else {
-        chrome.storage.local.get('leethub_username', data2 => {
-          const username = data2.leethub_username;
+        chrome.storage.local.get('leetcode_auto_username', data2 => {
+          const username = data2.leetcode_auto_username;
           if (!username) {
             showError(
-              'Improper Authorization error - Grant LeetHub access to your GitHub account to continue (launch extension to proceed)',
+              'Improper Authorization error - Grant LeetCode-Auto access to your GitHub account to continue (launch extension to proceed)',
             );
           } else {
             linkRepo(token, `${username}/${repositoryName()}`);
@@ -296,15 +296,15 @@ $('#unlink a').addEventListener('click', () => {
 
 /* ── Sync Counts ─────────────────────────────────────────── */
 $('#sync_counts').addEventListener('click', async () => {
-  const { leethub_hook: repo } = await chrome.storage.local.get('leethub_hook');
+  const { leetcode_auto_hook: repo } = await chrome.storage.local.get('leetcode_auto_hook');
   if (!repo) {
     showError('No repository linked - Please link a repository to sync counts!');
     return;
   }
 
-  const { leethub_token: token } = await chrome.storage.local.get('leethub_token');
+  const { leetcode_auto_token: token } = await chrome.storage.local.get('leetcode_auto_token');
   if (!token) {
-    showError('No token found - Please authorize LeetHub to access your GitHub account!');
+    showError('No token found - Please authorize LeetCode-Auto to access your GitHub account!');
     return;
   }
 
@@ -382,20 +382,20 @@ chrome.storage.local.get('mode_type', data => {
   const mode = data.mode_type;
 
   if (mode && mode === 'commit') {
-    chrome.storage.local.get('leethub_token', data2 => {
-      const token = data2.leethub_token;
+    chrome.storage.local.get('leetcode_auto_token', data2 => {
+      const token = data2.leetcode_auto_token;
       if (!token) {
         showError(
-          'Authorization error - Grant LeetHub access to your GitHub account to continue (click LeetHub extension on the top right to proceed)',
+          'Authorization error - Grant LeetCode-Auto access to your GitHub account to continue (click LeetCode-Auto extension on the top right to proceed)',
         );
         showEl('#hook_mode');
         hideEl('#commit_mode');
       } else {
-        chrome.storage.local.get('leethub_hook', repoName => {
-          const hook = repoName.leethub_hook;
+        chrome.storage.local.get('leetcode_auto_hook', repoName => {
+          const hook = repoName.leetcode_auto_hook;
           if (!hook) {
             showError(
-              'Improper Authorization error - Grant LeetHub access to your GitHub account to continue (click LeetHub extension on the top right to proceed)',
+              'Improper Authorization error - Grant LeetCode-Auto access to your GitHub account to continue (click LeetCode-Auto extension on the top right to proceed)',
             );
             showEl('#hook_mode');
             hideEl('#commit_mode');

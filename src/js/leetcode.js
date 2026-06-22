@@ -52,13 +52,13 @@ function chromeFetch(url, options = {}) {
 /* Helper function to display push errors as friendly alerts */
 function handlePushError(err) {
   let message = 'An error occurred while pushing to GitHub. Please check the console for details.';
-  if (err.message === 'leethub token is undefined') {
+  if (err.message === 'leetcode_auto token is undefined') {
     message =
       'LeetCode-Auto: GitHub token not found. Please click the extension icon and connect your GitHub account.';
-  } else if (err.message === 'leethub mode is not commit') {
+  } else if (err.message === 'leetcode_auto mode is not commit') {
     message =
       'LeetCode-Auto: Repository hook not set up. Please open the extension popup and link or create a repository.';
-  } else if (err.message === 'leethub hook not defined') {
+  } else if (err.message === 'leetcode_auto hook not defined') {
     message =
       'LeetCode-Auto: GitHub repository is not configured. Please open the extension popup and set up your repository.';
   } else if (err.message === '401') {
@@ -234,9 +234,9 @@ async function updateReadmeTopicTagsWithProblem(topicTags, problemName) {
     return;
   }
 
-  const { leethub_token, leethub_hook, stats } = await chrome.storage.local.get([
-    'leethub_token',
-    'leethub_hook',
+  const { leetcode_auto_token, leetcode_auto_hook, stats } = await chrome.storage.local.get([
+    'leetcode_auto_token',
+    'leetcode_auto_hook',
     'stats',
   ]);
 
@@ -245,8 +245,8 @@ async function updateReadmeTopicTagsWithProblem(topicTags, problemName) {
 
   try {
     const { content, sha } = await getUpdatedData(
-      leethub_token,
-      leethub_hook,
+      leetcode_auto_token,
+      leetcode_auto_hook,
       '',
       readmeFilename,
       false,
@@ -259,8 +259,8 @@ async function updateReadmeTopicTagsWithProblem(topicTags, problemName) {
     if (err.message === '404') {
       const initialContent = btoa(unescape(encodeURIComponent(defaultRepoReadme)));
       const uploadResponse = await upload(
-        leethub_token,
-        leethub_hook,
+        leetcode_auto_token,
+        leetcode_auto_hook,
         initialContent,
         '',
         readmeFilename,
@@ -281,7 +281,7 @@ async function updateReadmeTopicTagsWithProblem(topicTags, problemName) {
   }
 
   for (const topic of topicTags) {
-    readme = await appendProblemToReadme(topic.name, readme, leethub_hook, problemName);
+    readme = await appendProblemToReadme(topic.name, readme, leetcode_auto_hook, problemName);
   }
 
   readme = sortTopicsInReadme(readme);
@@ -289,8 +289,8 @@ async function updateReadmeTopicTagsWithProblem(topicTags, problemName) {
   const encodedReadme = btoa(unescape(encodeURIComponent(readme)));
   try {
     return await upload(
-      leethub_token,
-      leethub_hook,
+      leetcode_auto_token,
+      leetcode_auto_hook,
       encodedReadme,
       '',
       readmeFilename,
@@ -304,15 +304,15 @@ async function updateReadmeTopicTagsWithProblem(topicTags, problemName) {
       // Handle 409 Conflict by fetching the latest SHA and retrying
       console.log(`Conflict detected for ${readmeFilename}. Fetching latest SHA...`);
       const { sha: latestSha } = await getUpdatedData(
-        leethub_token,
-        leethub_hook,
+        leetcode_auto_token,
+        leetcode_auto_hook,
         '',
         readmeFilename,
         false,
       );
       return upload(
-        leethub_token,
-        leethub_hook,
+        leetcode_auto_token,
+        leetcode_auto_hook,
         encodedReadme,
         '',
         readmeFilename,
@@ -497,24 +497,24 @@ function uploadGit(
   let useLanguageFolder = false;
 
   return chrome.storage.local
-    .get('leethub_token')
-    .then(({ leethub_token }) => {
-      token = leethub_token;
-      if (leethub_token == undefined) {
-        throw new Error('leethub token is undefined');
+    .get('leetcode_auto_token')
+    .then(({ leetcode_auto_token }) => {
+      token = leetcode_auto_token;
+      if (leetcode_auto_token == undefined) {
+        throw new Error('leetcode_auto token is undefined');
       }
       return chrome.storage.local.get('mode_type');
     })
     .then(({ mode_type }) => {
       if (mode_type !== 'commit') {
-        throw new Error('leethub mode is not commit');
+        throw new Error('leetcode_auto mode is not commit');
       }
-      return chrome.storage.local.get('leethub_hook');
+      return chrome.storage.local.get('leetcode_auto_hook');
     })
-    .then(({ leethub_hook }) => {
-      hook = leethub_hook;
+    .then(({ leetcode_auto_hook }) => {
+      hook = leetcode_auto_hook;
       if (!hook) {
-        throw new Error('leethub hook not defined');
+        throw new Error('leetcode_auto hook not defined');
       }
       return chrome.storage.local.get('useDifficultyFolder');
     })
@@ -727,8 +727,8 @@ document.addEventListener('click', event => {
 });
 
 function LeetCodeV1() {
-  this.progressSpinnerElementId = 'leethub_progress_elem';
-  this.progressSpinnerElementClass = 'leethub_progress';
+  this.progressSpinnerElementId = 'leetcode_auto_progress_elem';
+  this.progressSpinnerElementClass = 'leetcode_auto_progress';
   this.injectSpinnerStyle();
 }
 LeetCodeV1.prototype.init = async function () {};
@@ -940,7 +940,7 @@ LeetCodeV1.prototype.parseStats = function () {
   const space = probStats[2].textContent;
   const spacePercentile = probStats[3].textContent;
 
-  return `Time: ${time} (${timePercentile}), Space: ${space} (${spacePercentile}) - LeetHub`;
+  return `Time: ${time} (${timePercentile}), Space: ${space} (${spacePercentile}) - LeetCode-Auto`;
 };
 /* Parser function for the question, question title, question difficulty, and tags */
 LeetCodeV1.prototype.parseQuestion = function () {
@@ -993,10 +993,10 @@ LeetCodeV1.prototype.parseQuestion = function () {
 /* Injects a spinner on left side to the "Run Code" button */
 LeetCodeV1.prototype.startSpinner = function () {
   try {
-    let elem = document.getElementById('leethub_progress_anchor_element');
+    let elem = document.getElementById('leetcode_auto_progress_anchor_element');
     if (!elem) {
       elem = document.createElement('span');
-      elem.id = 'leethub_progress_anchor_element';
+      elem.id = 'leetcode_auto_progress_anchor_element';
       elem.style = 'margin-right: 20px;padding-top: 2px;';
     }
     elem.innerHTML = `<div id="${this.progressSpinnerElementId}" class="${this.progressSpinnerElementClass}"></div>`;
@@ -1036,7 +1036,7 @@ LeetCodeV1.prototype.insertToAnchorElement = function (elem) {
     }
   }
 };
-/* Creates a ✔️ tick mark before "Run Code" button signaling LeetHub has done its job */
+/* Creates a ✔️ tick mark before "Run Code" button signaling LeetCode-Auto has done its job */
 LeetCodeV1.prototype.markUploaded = function () {
   const elem = document.getElementById(this.progressSpinnerElementId);
   if (elem) {
@@ -1059,14 +1059,14 @@ LeetCodeV1.prototype.markUploadFailed = function () {
  * and listens for messages from the injected script.
  */
 LeetCodeV2.prototype.injectAndListen = function () {
-  document.addEventListener('leetHubSubmissionId', event => {
-    console.log('[LeetHub] Received submission ID:', event.detail.submissionId);
+  document.addEventListener('leetcodeAutoSubmissionId', event => {
+    console.log('[LeetCode-Auto] Received submission ID:', event.detail.submissionId);
     this.processSubmission(event.detail.submissionId);
   });
 
-  document.addEventListener('leetHubSolutionPost', event => {
+  document.addEventListener('leetcodeAutoSolutionPost', event => {
     const { questionSlug, content, title } = event.detail;
-    console.log('LeetHub: Received solution post event:', event.detail);
+    console.log('LeetCode-Auto: Received solution post event:', event.detail);
     this.handleSolutionPost(questionSlug, content, title);
   });
 };
@@ -1076,7 +1076,7 @@ LeetCodeV2.prototype.injectAndListen = function () {
  */
 LeetCodeV2.prototype.processSubmission = async function (submissionId) {
   // Set the submissionId as a global variable so the existing init function can use it.
-  window.leethubLastSubmissionId = submissionId;
+  window.leetcodeAutoLastSubmissionId = submissionId;
 
   // Directly call the loader from the existing code.
   loader(this);
@@ -1084,14 +1084,14 @@ LeetCodeV2.prototype.processSubmission = async function (submissionId) {
 
 function LeetCodeV2() {
   this.submissionData;
-  this.progressSpinnerElementId = 'leethub_progress_elem';
-  this.progressSpinnerElementClass = 'leethub_progress';
+  this.progressSpinnerElementId = 'leetcode_auto_progress_elem';
+  this.progressSpinnerElementClass = 'leetcode_auto_progress';
   this.injectSpinnerStyle();
   this.addManualSubmitButton();
   this.injectAndListen();
 }
 LeetCodeV2.prototype.init = async function () {
-  const submissionId = window.leethubLastSubmissionId;
+  const submissionId = window.leetcodeAutoLastSubmissionId;
   if (!submissionId) {
     alert('Could not find a recent submission ID. Please try submitting again.');
     return;
@@ -1161,7 +1161,7 @@ query submissionDetails($submissionId: ID!) {
   )
     .then(res => res.json())
     .then(res => (isCN ? res.data.submissionDetail : res.data.submissionDetails));
-  console.info('LeetHub:', { submissionDetailsData });
+  console.info('LeetCode-Auto:', { submissionDetailsData });
   this.submissionData = submissionDetailsData;
 
   const questionDetailsQuery = {
@@ -1347,7 +1347,7 @@ LeetCodeV2.prototype.getLatestAcceptedSubmissionId = async function (questionSlu
       }
     }
   } catch (error) {
-    console.error('[LeetHub] Error fetching submissions list:', error);
+    console.error('[LeetCode-Auto] Error fetching submissions list:', error);
   }
   return null;
 };
@@ -1444,10 +1444,10 @@ LeetCodeV2.prototype.startSpinner = function () {
   if (button) {
     this.updateButtonState('loading');
   } else {
-    let elem = document.getElementById('leethub_progress_anchor_element');
+    let elem = document.getElementById('leetcode_auto_progress_anchor_element');
     if (!elem) {
       elem = document.createElement('span');
-      elem.id = 'leethub_progress_anchor_element';
+      elem.id = 'leetcode_auto_progress_anchor_element';
       elem.style = 'margin-right: 20px;padding-top: 2px;';
     }
     elem.innerHTML = `<div id="${this.progressSpinnerElementId}" class="${this.progressSpinnerElementClass}"></div>`;
@@ -1472,21 +1472,21 @@ LeetCodeV2.prototype.injectSpinnerStyle = function () {
       100% { transform: rotate(360deg) }
     }
 
-    @keyframes leethub-spin {
+    @keyframes leetcode-auto-spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    @keyframes leethub-scaleUp {
+    @keyframes leetcode-auto-scaleUp {
       0% { transform: scale(0.6); opacity: 0; }
       100% { transform: scale(1); opacity: 1; }
     }
-    @keyframes leethub-shake {
+    @keyframes leetcode-auto-shake {
       0%, 100% { transform: translateX(0); }
       20%, 60% { transform: translateX(-2px); }
       40%, 80% { transform: translateX(2px); }
     }
 
-    .leethub-state-icon {
+    .leetcode-auto-state-icon {
       transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       display: inline-flex;
       align-items: center;
@@ -1495,18 +1495,18 @@ LeetCodeV2.prototype.injectSpinnerStyle = function () {
       height: 100%;
     }
 
-    .leethub-loading-icon svg {
-      animation: leethub-spin 1s linear infinite;
+    .leetcode-auto-loading-icon svg {
+      animation: leetcode-auto-spin 1s linear infinite;
       color: #38bdf8;
     }
 
-    .leethub-success-icon svg {
-      animation: leethub-scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    .leetcode-auto-success-icon svg {
+      animation: leetcode-auto-scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
       color: #4ade80;
     }
 
-    .leethub-error-icon svg {
-      animation: leethub-shake 0.4s ease-in-out;
+    .leetcode-auto-error-icon svg {
+      animation: leetcode-auto-shake 0.4s ease-in-out;
       color: #f87171;
     }
 
@@ -1622,7 +1622,7 @@ LeetCodeV2.prototype.updateButtonState = function (state) {
   button.classList.remove('loading', 'success', 'error');
 
   const iconWrapper = document.createElement('div');
-  iconWrapper.className = `leethub-state-icon leethub-${state}-icon`;
+  iconWrapper.className = `leetcode-auto-state-icon leetcode-auto-${state}-icon`;
 
   if (state === 'idle') {
     iconWrapper.appendChild(getGitIcon());
@@ -1681,11 +1681,11 @@ LeetCodeV2.prototype.addUrlChangeListener = function () {
 /* Sync to local storage */
 chrome.storage.local.get('isSync', data => {
   const keys = [
-    'leethub_token',
-    'leethub_username',
-    'pipe_leethub',
+    'leetcode_auto_token',
+    'leetcode_auto_username',
+    'pipe_leetcode_auto',
     'stats',
-    'leethub_hook',
+    'leetcode_auto_hook',
     'mode_type',
     'custom_commit_message',
   ];
@@ -1698,10 +1698,10 @@ chrome.storage.local.get('isSync', data => {
       });
     });
     chrome.storage.local.set({ isSync: true }, _ => {
-      console.log('LeetHub Synced to local values');
+      console.log('LeetCode-Auto Synced to local values');
     });
   } else {
-    console.log('LeetHub Local storage already synced!');
+    console.log('LeetCode-Auto Local storage already synced!');
   }
 });
 
@@ -1720,9 +1720,9 @@ const loader = (leetCode, suffix) => {
           submissionId = urlMatch[1];
         }
 
-        // If not in URL, check if window.leethubLastSubmissionId is set
-        if (!submissionId && window.leethubLastSubmissionId) {
-          submissionId = window.leethubLastSubmissionId;
+        // If not in URL, check if window.leetcodeAutoLastSubmissionId is set
+        if (!submissionId && window.leetcodeAutoLastSubmissionId) {
+          submissionId = window.leetcodeAutoLastSubmissionId;
         }
 
         // If still not set, fetch the last accepted submission for this problem
@@ -1730,7 +1730,7 @@ const loader = (leetCode, suffix) => {
           const problemMatch = window.location.pathname.match(/\/problems\/([^/]+)/);
           if (problemMatch && problemMatch[1]) {
             const problemSlug = problemMatch[1];
-            console.log('[LeetHub] Querying last accepted submission for slug:', problemSlug);
+            console.log('[LeetCode-Auto] Querying last accepted submission for slug:', problemSlug);
             submissionId = await leetCode.getLatestAcceptedSubmissionId(problemSlug);
           }
         }
@@ -1739,15 +1739,15 @@ const loader = (leetCode, suffix) => {
           throw new Error('No submission found for this problem. Please submit a solution first.');
         }
 
-        window.leethubLastSubmissionId = submissionId;
+        window.leetcodeAutoLastSubmissionId = submissionId;
 
         // Poll the GraphQL API for submission details until it's finished judging
         let iterations = 0;
         let finalSubmissionData = null;
 
         while (iterations < 10) {
-          console.log('[LeetHub] Polling submission status, attempt:', iterations + 1);
-          await leetCode.init(); // this fetches details for window.leethubLastSubmissionId
+          console.log('[LeetCode-Auto] Polling submission status, attempt:', iterations + 1);
+          await leetCode.init(); // this fetches details for window.leetcodeAutoLastSubmissionId
 
           const status = leetCode.checkSubmissionStatus();
           if (status === 'accepted') {
@@ -1906,7 +1906,7 @@ const loader = (leetCode, suffix) => {
     } catch (err) {
       uploadState.uploading = false;
       leetCode.markUploadFailed();
-      console.error('[LeetHub] Push failed:', err);
+      console.error('[LeetCode-Auto] Push failed:', err);
       handlePushError(err);
     }
   })();
@@ -2118,7 +2118,7 @@ function sortTopicsInReadme(markdownFile) {
   return markdownFile;
 }
 
-// Function to convert questionSlug to problemName using the same logic as LeetHub
+// Function to convert questionSlug to problemName using the same logic as LeetCode-Auto
 async function questionSlugToProblemName(questionSlug) {
   // Query LeetCode GraphQL to get question details
   const questionDetailsQuery = {
@@ -2166,12 +2166,12 @@ async function questionSlugToProblemName(questionSlug) {
 async function getLastCommitMessage(problemName) {
   try {
     const { stats } = await chrome.storage.local.get('stats');
-    const { leethub_token } = await chrome.storage.local.get('leethub_token');
-    const { leethub_hook } = await chrome.storage.local.get('leethub_hook');
+    const { leetcode_auto_token } = await chrome.storage.local.get('leetcode_auto_token');
+    const { leetcode_auto_hook } = await chrome.storage.local.get('leetcode_auto_hook');
     const { useDifficultyFolder = false } = await chrome.storage.local.get('useDifficultyFolder');
     const { useLanguageFolder = false } = await chrome.storage.local.get('useLanguageFolder');
 
-    if (!stats?.shas || !leethub_token || !leethub_hook) {
+    if (!stats?.shas || !leetcode_auto_token || !leetcode_auto_hook) {
       return 'Add solution post';
     }
 
@@ -2209,12 +2209,12 @@ async function getLastCommitMessage(problemName) {
     }
 
     // Fetch commits from GitHub API for this problem folder
-    const commitsUrl = `https://api.github.com/repos/${leethub_hook}/commits?path=${folderPath}&per_page=10`;
+    const commitsUrl = `https://api.github.com/repos/${leetcode_auto_hook}/commits?path=${folderPath}&per_page=10`;
 
     const options = {
       method: 'GET',
       headers: {
-        Authorization: `token ${leethub_token}`,
+        Authorization: `token ${leetcode_auto_token}`,
         Accept: 'application/vnd.github.v3+json',
       },
     };
