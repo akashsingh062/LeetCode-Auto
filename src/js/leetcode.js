@@ -1,5 +1,6 @@
 /* Helper function to perform cross-origin fetches via background service worker proxy */
-function chromeFetch(url, options = {}) {
+function chromeFetch(url, options) {
+  options = options || {};
   const isUrlAbsolute = url.startsWith('http://') || url.startsWith('https://');
   let isCrossOrigin = false;
   if (isUrlAbsolute) {
@@ -8,6 +9,18 @@ function chromeFetch(url, options = {}) {
       isCrossOrigin = urlObj.origin !== window.location.origin;
     } catch {
       isCrossOrigin = true;
+    }
+  }
+
+  if (!options.headers) {
+    options.headers = {};
+  }
+
+  // Inject x-csrftoken for same-origin GraphQL POST requests if present in cookies
+  if (!isCrossOrigin && options.method === 'POST') {
+    const csrfMatch = document.cookie.match(/csrftoken=([^;]+)/);
+    if (csrfMatch && csrfMatch[1]) {
+      options.headers['x-csrftoken'] = csrfMatch[1];
     }
   }
 
@@ -1059,15 +1072,21 @@ LeetCodeV1.prototype.markUploadFailed = function () {
  * and listens for messages from the injected script.
  */
 LeetCodeV2.prototype.injectAndListen = function () {
-  document.addEventListener('leetcodeAutoSubmissionId', event => {
-    console.log('[LeetCode-Auto] Received submission ID:', event.detail.submissionId);
-    this.processSubmission(event.detail.submissionId);
-  });
+  window.addEventListener('message', event => {
+    // Only accept messages from the same origin
+    if (event.origin !== window.location.origin) return;
 
-  document.addEventListener('leetcodeAutoSolutionPost', event => {
-    const { questionSlug, content, title } = event.detail;
-    console.log('LeetCode-Auto: Received solution post event:', event.detail);
-    this.handleSolutionPost(questionSlug, content, title);
+    const data = event.data;
+    if (!data || typeof data !== 'object') return;
+
+    if (data.type === 'leetcodeAutoSubmissionId') {
+      console.log('[LeetCode-Auto] Received submission ID:', data.submissionId);
+      this.processSubmission(data.submissionId);
+    } else if (data.type === 'leetcodeAutoSolutionPost') {
+      const { questionSlug, content, title } = data;
+      console.log('LeetCode-Auto: Received solution post event:', data);
+      this.handleSolutionPost(questionSlug, content, title);
+    }
   });
 };
 
@@ -1155,7 +1174,7 @@ query submissionDetails($submissionId: ID!) {
     },
     body: JSON.stringify(submissionDetailsQuery),
   };
-  const submissionDetailsData = await fetch(
+  const submissionDetailsData = await chromeFetch(
     `${getLeetCodeBaseUrl()}/graphql/`,
     submissionDetailsOptions,
   )
@@ -1177,7 +1196,7 @@ query submissionDetails($submissionId: ID!) {
     },
     body: JSON.stringify(questionDetailsQuery),
   };
-  const questionDetailsData = await fetch(
+  const questionDetailsData = await chromeFetch(
     getLeetCodeBaseUrl() + '/graphql/',
     questionDetailsOptions,
   )
@@ -1276,29 +1295,53 @@ LeetCodeV2.prototype.checkSubmissionStatus = function () {
   const status = subData.statusDisplay;
   const code = subData.statusCode;
 
+  // List of final statuses
+  const finalStatuses = [
+    'Accepted',
+    '通过',
+    'Wrong Answer',
+    '解答错误',
+    'Runtime Error',
+    '执行出错',
+    'Time Limit Exceeded',
+    '超出时间限制',
+    'Memory Limit Exceeded',
+    '超出内存限制',
+    'Output Limit Exceeded',
+    '输出超限',
+    'Compile Error',
+    '编译出错',
+  ];
+
+  // List of pending statuses
+  const pendingStatuses = ['Pending', 'Judging', '排队中', '评测中'];
+
   if (status) {
-    if (
-      status === 'Pending' ||
-      status === 'Judging' ||
-      status === '排队中' ||
-      status === '评测中'
-    ) {
+    if (pendingStatuses.includes(status)) {
       return 'pending';
     } else if (status === 'Accepted' || status === '通过') {
       return 'accepted';
-    } else {
+    } else if (finalStatuses.includes(status)) {
       return 'failed';
     }
   }
 
-  // Fallback to statusCode if statusDisplay is not available
+  // Fallback to statusCode or check if both statusDisplay/statusCode suggest it's still running
   if (code !== undefined && code !== null) {
     if (code === 10) {
       return 'accepted';
-    } else if (code === 0) {
-      return 'pending';
-    } else {
+    } else if (
+      code === 11 ||
+      code === 12 ||
+      code === 13 ||
+      code === 14 ||
+      code === 15 ||
+      code === 20
+    ) {
       return 'failed';
+    } else {
+      // Treats 0, 16, or any other intermediate status codes as pending
+      return 'pending';
     }
   }
 
@@ -1334,7 +1377,7 @@ LeetCodeV2.prototype.getLatestAcceptedSubmissionId = async function (questionSlu
   };
 
   try {
-    const res = await fetch(`${getLeetCodeBaseUrl()}/graphql/`, options);
+    const res = await chromeFetch(`${getLeetCodeBaseUrl()}/graphql/`, options);
     const data = await res.json();
     const submissions = data?.data?.submissionList?.submissions;
     if (submissions && submissions.length > 0) {
@@ -1385,10 +1428,11 @@ LeetCodeV2.prototype.parseQuestion = function () {
   let markdown;
   if (this.submissionData != null) {
     const questionUrl = window.location.href.split('/submissions')[0];
-    const qTitle = `${this.extractQuestionNumber()}. ${this.submissionData.question.title}`;
+    const qTitle = `${this.extractQuestionNumber()}. ${this.submissionData.question?.title ?? this.questionDetails?.title ?? this.questionDetails?.translatedTitle ?? 'Unknown'}`;
     const qBody = this.parseQuestionDescription();
 
-    difficulty = this.submissionData.question.difficulty;
+    difficulty =
+      this.submissionData.question?.difficulty ?? this.questionDetails?.difficulty ?? 'Unknown';
 
     // Final formatting of the contents of the README for each problem
     markdown = `<h2><a href="${questionUrl}">${qTitle}</a></h2><h3>${difficulty}</h3><hr>${qBody}`;
@@ -1401,7 +1445,12 @@ LeetCodeV2.prototype.parseQuestion = function () {
 };
 LeetCodeV2.prototype.parseQuestionTitle = function () {
   if (this.submissionData != null) {
-    return this.submissionData.question.title;
+    return (
+      this.submissionData.question?.title ??
+      this.questionDetails?.title ??
+      this.questionDetails?.translatedTitle ??
+      'unknown-problem'
+    );
   }
 
   let questionTitle = document
@@ -1418,7 +1467,12 @@ LeetCodeV2.prototype.parseQuestionTitle = function () {
 };
 LeetCodeV2.prototype.parseQuestionDescription = function () {
   if (this.submissionData != null) {
-    return this.submissionData.question.content;
+    return (
+      this.submissionData.question?.content ??
+      this.questionDetails?.content ??
+      this.questionDetails?.translatedContent ??
+      ''
+    );
   }
 
   const description = document.getElementsByName('description');
@@ -1429,7 +1483,9 @@ LeetCodeV2.prototype.parseQuestionDescription = function () {
 };
 LeetCodeV2.prototype.parseDifficulty = function () {
   if (this.submissionData != null) {
-    return this.submissionData.question.difficulty;
+    return (
+      this.submissionData.question?.difficulty ?? this.questionDetails?.difficulty ?? 'unknown'
+    );
   }
 
   const diffElement = document.getElementsByClassName('mt-3 flex space-x-4');
@@ -2145,7 +2201,7 @@ async function questionSlugToProblemName(questionSlug) {
   };
 
   try {
-    const response = await chromeFetch('https://leetcode.com/graphql/', questionDetailsOptions);
+    const response = await chromeFetch(`${getLeetCodeBaseUrl()}/graphql/`, questionDetailsOptions);
     const data = await response.json();
     const questionDetails = data.data.question;
 

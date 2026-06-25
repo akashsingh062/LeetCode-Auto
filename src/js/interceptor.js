@@ -6,7 +6,18 @@ const originalFetch = window.fetch;
 
 window.fetch = async function (...args) {
   const [resource, options] = args;
-  const url = typeof resource === 'string' ? resource : resource?.url;
+
+  let url = '';
+  if (typeof resource === 'string') {
+    url = resource;
+  } else if (resource instanceof URL) {
+    url = resource.href;
+  } else if (resource && typeof resource === 'object' && 'url' in resource) {
+    url = resource.url;
+  } else if (resource && typeof resource.toString === 'function') {
+    url = resource.toString();
+  }
+
   const method = options?.method || 'GET';
 
   console.log('[LeetCode-Auto Fetch Intercept]', url, method);
@@ -19,10 +30,12 @@ window.fetch = async function (...args) {
 
       if (data?.submission_id) {
         console.log('LeetCode-Auto: Submission ID detected', data.submission_id);
-        document.dispatchEvent(
-          new CustomEvent('leetcodeAutoSubmissionId', {
-            detail: { submissionId: data.submission_id },
-          }),
+        window.postMessage(
+          {
+            type: 'leetcodeAutoSubmissionId',
+            submissionId: data.submission_id,
+          },
+          '*',
         );
       }
     } catch (e) {
@@ -49,14 +62,14 @@ window.fetch = async function (...args) {
             timestamp: Date.now(),
           });
 
-          document.dispatchEvent(
-            new CustomEvent('leetcodeAutoSolutionPost', {
-              detail: {
-                questionSlug: solutionData.questionSlug,
-                content: solutionData.content,
-                title: solutionData.title,
-              },
-            }),
+          window.postMessage(
+            {
+              type: 'leetcodeAutoSolutionPost',
+              questionSlug: solutionData.questionSlug,
+              content: solutionData.content,
+              title: solutionData.title,
+            },
+            '*',
           );
         } else {
           console.log('LeetCode-Auto: Missing questionSlug or content in solution data');
@@ -82,7 +95,31 @@ XMLHttpRequest.prototype.open = function (method, url, ...args) {
 };
 
 XMLHttpRequest.prototype.send = function (data) {
-  if (this._leetcode_auto_url?.includes('/graphql/') && this._leetcode_auto_method === 'POST') {
+  const url = this._leetcode_auto_url;
+  const method = this._leetcode_auto_method;
+
+  // Intercept submit responses via XHR
+  if (url?.includes('/problems/') && url?.includes('/submit/')) {
+    this.addEventListener('load', () => {
+      try {
+        const responseData = JSON.parse(this.responseText);
+        if (responseData?.submission_id) {
+          console.log('LeetCode-Auto: Submission ID detected via XHR', responseData.submission_id);
+          window.postMessage(
+            {
+              type: 'leetcodeAutoSubmissionId',
+              submissionId: responseData.submission_id,
+            },
+            '*',
+          );
+        }
+      } catch (e) {
+        console.log('LeetCode-Auto: Error parsing XHR submission response', e);
+      }
+    });
+  }
+
+  if (url?.includes('/graphql/') && method === 'POST') {
     console.log('LeetCode-Auto: GraphQL POST detected via XHR');
 
     try {
@@ -103,15 +140,15 @@ XMLHttpRequest.prototype.send = function (data) {
             title: solutionData.title,
             timestamp: Date.now(),
           });
-          // Dispatch custom event to notify content script
-          document.dispatchEvent(
-            new CustomEvent('leetcodeAutoSolutionPost', {
-              detail: {
-                questionSlug: solutionData.questionSlug,
-                content: solutionData.content,
-                title: solutionData.title,
-              },
-            }),
+          // Dispatch window message to notify content script
+          window.postMessage(
+            {
+              type: 'leetcodeAutoSolutionPost',
+              questionSlug: solutionData.questionSlug,
+              content: solutionData.content,
+              title: solutionData.title,
+            },
+            '*',
           );
         } else {
           console.log('LeetCode-Auto: Missing questionSlug or content in XHR solution data');
